@@ -9,7 +9,6 @@ Data_Pipeline: Directory containing pipeline which computes the per day data of 
 
 Data:
 
-
 [MyLA311 Service Request Data 2019](https://data.lacity.org/A-Well-Run-City/MyLA311-Service-Request-Data-2019/pvft-t768)
 
 [MyLA311 Service Request Data 2018](https://data.lacity.org/A-Well-Run-City/MyLA311-Service-Request-Data-2018/h65r-yf5i)
