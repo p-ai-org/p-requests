@@ -1,2 +1,25 @@
 # 311-Requests
-P-ai team working with Hack for LA to improve #311 request LA map
+[P-ai's](https://www.p-ai.org/) #311 team is working with [Hack For LA](https://www.hackforla.org/#hack-nights) to improve #311 request LA map. Project Details: 
+
+[Hack for LA 311 Data](https://www.hackforla.org/projects/311-data)
+
+Data_Pipeline: Directory containing pipeline which computes the per day data of the number of 311 requests, arrests, crimes committed, and traffic stops since 2017. Pushed to HackforLA's github repo and in the process of being integrated with their backend so that per day data can be displayed through their #311 request map
+
+#311_Request_ETC_Model: Directory containing exploratory data analysis of features that might affect the number of days required for a request to be served
+
+Data:
+
+
+[MyLA311 Service Request Data 2019](https://data.lacity.org/A-Well-Run-City/MyLA311-Service-Request-Data-2019/pvft-t768)
+
+[MyLA311 Service Request Data 2018](https://data.lacity.org/A-Well-Run-City/MyLA311-Service-Request-Data-2018/h65r-yf5i)
+
+[MyLA311 Service Request Data 2017](https://data.lacity.org/A-Well-Run-City/MyLA311-Service-Request-Data-2017/d4vt-q4t5)
+
+[Arrest Data Since 2010](https://data.lacity.org/A-Safe-City/Arrest-Data-from-2010-to-Present/yru6-6re4/data)
+
+[Vehicle and Pedestrian Stop Data Since 2010](https://data.lacity.org/A-Safe-City/Vehicle-and-Pedestrian-Stop-Data-2010-to-Present/ci25-wgt7/data)
+
+[Crime Data Since 2010](https://data.lacity.org/A-Safe-City/Crime-Data-from-2010-to-2019/63jg-8b9z/data)
+
+[Data Catalog](https://data.lacity.org/browse?q=&sortBy=relevance)
