@@ -3,9 +3,11 @@
 
 [Hack for LA 311 Data](https://www.hackforla.org/projects/311-data)
 
-Data_Pipeline: Directory containing pipeline which computes the per day data of the number of 311 requests, arrests, crimes committed, and traffic stops since 2017. Pushed to HackforLA's github repo and in the process of being integrated with their backend so that per day data can be displayed through their #311 request map
+Data_Pipeline: This directory contains data pipeline which computes the per day data of the number of 311 requests, arrests, crimes committed, and traffic stops since 2017. It has been successfully pushed to HackforLA's github repo and is in the process of being integrated with their backend so that per day data can be displayed through Hack for LA's #311 request map.
 
-#311_Request_ETC_Model: Directory containing exploratory data analysis of features that might affect the number of days required for a request to be served
+311_Requests_Analysis: This directory contains exploratory data analysis of features found to be relevant to the number of days required for a request to be completed.
+
+311_Requests_Model: This directory contains machine learning model that determines whether a request will be completed within a week from the time it was submitted.
 
 Data:
 
