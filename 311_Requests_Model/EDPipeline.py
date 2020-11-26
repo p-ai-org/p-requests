@@ -20,7 +20,7 @@ import LACER as lc
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_absolute_error
 from sgcrf import SparseGaussianCRF
-
+import pickle
 
 #Slightly editied lacer funcions
 def preprocessing(df, start_date, end_date):
@@ -77,7 +77,10 @@ def lacer(df, df1, train_start_date, train_end_date, test_start_date, test_end_d
     y_predFinal = (y_predCD + y_predRT )/2
 
     #Return metrics 
-    return lc.metrics(y_predFinal, y_test)
+    #return lc.metrics(y_predFinal, y_test)
+
+    # Return models
+    return modelCD, modelRT
 
 """
 Records whether or not a number is greater than 7. 
@@ -137,6 +140,7 @@ def estimation_model(estimators, depth,X,y):
 Will be removed
 '''
 def dummy_model(df):
+    # this needs to return a model for the deployment to work -- Andy
     return 0,0
 
 '''
@@ -159,9 +163,11 @@ Takes the data file path and parameters for the lacer model and runs the pipelin
 def run_split_models(df_file_path,train_start_date, train_end_date, test_start_date, test_end_date, request_type, CD, predictor_num):
     df_sgcrf, df_other = split_to_models(df_file_path)
     print('running SGCRF')
-    rmse, mae = lacer(df_sgcrf.copy(),df_sgcrf.copy(), train_start_date, train_end_date, test_start_date, test_end_date, request_type, CD, predictor_num)
+    modelCD, modelRT = lacer(df_sgcrf.copy(),df_sgcrf.copy(), train_start_date, train_end_date, test_start_date, test_end_date, request_type, CD, predictor_num)
     print('running (other model)')
     a,b = dummy_model(df_other)
-    return (rmse,mae),(a,b)
 
-
+    # send to pickle so that flask can access it
+    pickle.dump(modelCD, open('modelCD.pkl'), 'wb')
+    pickle.dump(modelRT, open('modelRT.pkl'), 'wb')
+    return (modelCD, modelRT), (a, b)
