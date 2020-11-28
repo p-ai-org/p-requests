@@ -22,25 +22,28 @@ from sklearn.metrics import mean_absolute_error
 from sgcrf import SparseGaussianCRF
 import pickle
 
+#Features to use in our model, c = categorical, d = numeric
+c = ['Anonymous','AssignTo', 'RequestType', 'RequestSource','CD','Direction', 'ActionTaken', 'APC' ,'AddressVerified']
+d = ['Latitude', 'Longitude']
+    
 #Slightly editied lacer funcions
 def preprocessing(df, start_date, end_date):
     """
     Filters dataframe by specified start and end_dates and runs CleanedFrame on it.  
     """ 
-
     #Filter dataframe by dates 
     df = df[(df['Just Date'] >= start_date) & (df['Just Date'] <= end_date)]
     df = lc.CleanedFrame(df)
-
     return df
-def lacer(df, df1, train_start_date, train_end_date, test_start_date, test_end_date, request_type, CD, predictor_num): #Once model is ready, replace df with csv
+
+def lacer(df, df1, train_start_date, train_end_date, test_start_date, test_end_date, request_type, CD, predictor_num):
     """
     Trains 3 GCRF models on data from specified CD, Request Type, and Owner which is assigned to fulfill request. 
     Uses specified start and end dates for training and testing to creat train and test sets. 
     """
 
     #Create Training and Testing Sets
-    dftrain = preprocessing(df , train_start_date, train_end_date)
+    dftrain = preprocessing(df, train_start_date, train_end_date)
     dftrain = dftrain.reset_index(drop = True)
     dftest = preprocessing(df1, test_start_date, test_end_date)
     dftest = dftest.reset_index(drop = True)
@@ -48,9 +51,9 @@ def lacer(df, df1, train_start_date, train_end_date, test_start_date, test_end_d
     #Reserve test set for training on all 3 models. 
     y_train, y_test = lc.CreateTestSet(dftest, predictor_num)
     y_test = y_test.reshape((-1, 1))
+   
 
-
-## 2 Models
+    ## 2 Models
     #Model1: CD
     modelCD = SparseGaussianCRF(lamL=0.1, lamT=0.1, n_iter=10000)
     dftrainCD = dftrain[dftrain['CD'] == CD].reset_index(drop = True)
@@ -76,14 +79,11 @@ def lacer(df, df1, train_start_date, train_end_date, test_start_date, test_end_d
     #Average out all predictions
     y_predFinal = (y_predCD + y_predRT )/2
 
-    #Return metrics 
-    #return lc.metrics(y_predFinal, y_test)
-
     # Return models
     return modelCD, modelRT
 
 """
-Records whether or not a number is greater than 7. 
+Retu whether or not a number is greater than 11. 
 """
 def gelev(val): 
     if val <= 11: 
@@ -94,15 +94,11 @@ def gelev(val):
 '''
 Preprocessing function. Takes in the file path to the data and loads it in a DataFrame, then calcuates the elapsed days per request and marks them as more than or less than eleven days. Then it encodes the appropriate values and returns the train data, labels, and the formatted dataframe.
 '''
-def preprocess(df_path):
-    df = pd.read_csv(df_path)
+def preprocess(df):
     df['Just Date'] = df['Just Date'].apply(lambda x: datetime.strptime(x,'%Y-%m-%d'))
     df['Eleven'] = df['ElapsedDays'].apply(gelev, 0)
-    #Encode values
-    c = ['Anonymous','AssignTo', 'RequestType', 'RequestSource','CD','Direction', 'ActionTaken', 'APC' ,'AddressVerified']
-    d = ['Latitude', 'Longitude']
     #Put desired columns into dataframe, drop nulls. 
-    dfn = df.filter(items = c + d + ['ElapsedDays'])
+    dfn = df.filter(items = c + d + ['ElapsedDays','Just Date','CreatedDate','ClosedDate'])
     dfn = dfn.dropna()
     #Separate data into explanatory and response variables
     XCAT = dfn.filter(items = c).values
@@ -131,43 +127,65 @@ def estimation_model(estimators, depth,X,y):
     #Test model
     print('testing model')
     y_vpred = rf.predict(X_val)
+    #pickle.dump(rf, open('randomForest.pkl'), 'wb')
     #Print Accuracy Function results
     print("Accuracy:",metrics.accuracy_score(y_val, y_vpred))
     print("Precision, Recall, F1Score:",metrics.precision_recall_fscore_support(y_val, y_vpred, average = 'binary'))
     return rf
 
 '''
-Will be removed
+Will be replaced with model for requests over 11 days
 '''
-def dummy_model(df):
+def minority_class_model(df):
     # this needs to return a model for the deployment to work -- Andy
     return 0,0
 
 '''
 Takes a file path to the data, runs the appropriate preprocessing steps, and uses the model to classify everything into the majority and minority class. Returns a dataframe with the majority class and a separate one with the minority class.
 '''
-def split_to_models(df_file_path):
+def split_to_models(df):
     print('Calculating train data and labels')
-    X, y, df = preprocess(df_file_path)
-    df_clean = pd.read_csv(df_file_path)
+    X, y, df = preprocess(df)
+    df_clean = df.copy()
     print('Creating 11 day classifier')
     model_eleven = estimation_model(50,20,X,y)
     df['LessEqualEleven'] = model_eleven.predict(X)
     df['LessEqualEleven'] = df['LessEqualEleven'].apply(lambda x: int(x))
     df_sgcrf = df[df['LessEqualEleven'] == 1.0]
     df_other = df[df['LessEqualEleven'] == 0.0]
-    return df_sgcrf.merge(df_clean,on=['Latitude','Longitude']), df_other
+    return df_sgcrf, df_other
+
 '''
 Takes the data file path and parameters for the lacer model and runs the pipeline to get the appropriate dataframes, then runs both models. This is the main function you should run from this file.
 '''
-def run_split_models(df_file_path,train_start_date, train_end_date, test_start_date, test_end_date, request_type, CD, predictor_num):
-    df_sgcrf, df_other = split_to_models(df_file_path)
+def run_split_models(df,train_start_date, train_end_date, test_start_date, test_end_date, request_type, CD, predictor_num):
+    df_sgcrf, df_other = split_to_models(df)
     print('running SGCRF')
     modelCD, modelRT = lacer(df_sgcrf.copy(),df_sgcrf.copy(), train_start_date, train_end_date, test_start_date, test_end_date, request_type, CD, predictor_num)
     print('running (other model)')
-    a,b = dummy_model(df_other)
-
+    a,b = minority_class_model(df_other)
+    
     # send to pickle so that flask can access it
+    print('dumping to pickle')
+    pickle.dump(modelCD, open('modelCD.pkl','wb'))
+    pickle.dump(modelRT, open('modelRT.pkl','wb'))
+    #return (modelCD, modelRT), (a, b)
+'''
+Beginning code to update the model after requests have been made.
+'''
+def update_model(requests,modelCD,modelRT,modelMin):
+    df_request = pd.DataFrame(data=requests,columns=c+d)
+    X, y, df = preprocess(df_request)
+    df_sgcrf = df[df['ElapsedDays'] <= 11.0]
+    df_other = df[df['ElapsedDays'] > 11.0]
+    modelCD.fit(np.asarray(df_sgcrf['CD']),np.asarray(df_sgcrf['ElapsedDays']))
+    modelRT.fit(np.asarray(df_sgcrf['RequestType']),np.asarray(df_sgcrf['ElapsedDays']))
+    #modelMin.fit will go here
+    #dump back to pickle - or we can just return the models themselves
     pickle.dump(modelCD, open('modelCD.pkl'), 'wb')
     pickle.dump(modelRT, open('modelRT.pkl'), 'wb')
-    return (modelCD, modelRT), (a, b)
+    
+    
+    
+    
+    
