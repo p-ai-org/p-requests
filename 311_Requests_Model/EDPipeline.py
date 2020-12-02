@@ -10,7 +10,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
-from datetime import datetime
+from datetime import datetime, timedelta
 from sklearn.naive_bayes import GaussianNB
 from sklearn import tree
 from sklearn.ensemble import RandomForestClassifier
@@ -48,7 +48,8 @@ def lacer(df, df1, train_start_date, train_end_date, test_start_date, test_end_d
     dftest = preprocessing(df1, test_start_date, test_end_date)
     dftest = dftest.reset_index(drop = True)
 
-    #Reserve test set for training on all 3 models. 
+    #Reserve test set for training on all 3 models.
+    
     y_train, y_test = lc.CreateTestSet(dftest, predictor_num)
     y_test = y_test.reshape((-1, 1))
    
@@ -94,8 +95,9 @@ def gelev(val):
 '''
 Preprocessing function. Takes in the file path to the data and loads it in a DataFrame, then calcuates the elapsed days per request and marks them as more than or less than eleven days. Then it encodes the appropriate values and returns the train data, labels, and the formatted dataframe.
 '''
-def preprocess(df):
-    df['Just Date'] = df['Just Date'].apply(lambda x: datetime.strptime(x,'%Y-%m-%d'))
+def preprocess(df, formatted=False,encode=True):
+    if not formatted:
+        df['Just Date'] = df['Just Date'].apply(lambda x: datetime.strptime(x,'%Y-%m-%d'))
     df['Eleven'] = df['ElapsedDays'].apply(gelev, 0)
     #Put desired columns into dataframe, drop nulls. 
     dfn = df.filter(items = c + d + ['ElapsedDays','Just Date','CreatedDate','ClosedDate'])
@@ -103,14 +105,19 @@ def preprocess(df):
     #Separate data into explanatory and response variables
     XCAT = dfn.filter(items = c).values
     XNUM = dfn.filter(items = d).values
-    y = dfn['ElapsedDays'] <= 11
+    y = None
     #Encode cateogrical data and merge with numerical data
-    labelencoder_X = LabelEncoder()
-    for num in range(len(c)): 
-        XCAT[:, num] = labelencoder_X.fit_transform(XCAT[:, num])
-    onehotencoder = OneHotEncoder()
-    XCAT = onehotencoder.fit_transform(XCAT).toarray()
-    X = np.concatenate((XCAT, XNUM), axis=1)
+    if encode:
+        onehotencoder = OneHotEncoder()
+        y = dfn['ElapsedDays'] <= 11
+        #Dump encoder class data to pickle
+        XCAT = onehotencoder.fit_transform(XCAT).toarray()
+        X = np.concatenate((XCAT, XNUM), axis=1)
+        pickle.dump(onehotencoder, open("encoder.pickl", "wb"))
+    else:
+        onehotencoder = pickle.load('encoder.pkl')
+        XCAT = onehotencoder.fit_transform(XCAT).toarray()
+        X = np.concatenate((XCAT, XNUM), axis=1)
     return X,y, dfn
 
 '''
@@ -121,13 +128,14 @@ def estimation_model(estimators, depth,X,y):
     print('creating train, test, val split')
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size = 0.2, random_state = 0)
-    #Train Model
+    #Train Model on 3 yrs data on
     print('training model')
     rf.fit(X_train, y_train)
     #Test model
     print('testing model')
     y_vpred = rf.predict(X_val)
-    #pickle.dump(rf, open('randomForest.pkl'), 'wb')
+    print('dump to pickle')
+    pickle.dump(rf, open('randomForest.pkl', 'wb'))
     #Print Accuracy Function results
     print("Accuracy:",metrics.accuracy_score(y_val, y_vpred))
     print("Precision, Recall, F1Score:",metrics.precision_recall_fscore_support(y_val, y_vpred, average = 'binary'))
@@ -143,11 +151,11 @@ def minority_class_model(df):
 '''
 Takes a file path to the data, runs the appropriate preprocessing steps, and uses the model to classify everything into the majority and minority class. Returns a dataframe with the majority class and a separate one with the minority class.
 '''
-def split_to_models(df):
+def split_to_models(df,formatted=False):
     print('Calculating train data and labels')
-    X, y, df = preprocess(df)
-    df_clean = df.copy()
+    X, y, df = preprocess(df,formatted)
     print('Creating 11 day classifier')
+    #Train on 3 yrs before data
     model_eleven = estimation_model(50,20,X,y)
     df['LessEqualEleven'] = model_eleven.predict(X)
     df['LessEqualEleven'] = df['LessEqualEleven'].apply(lambda x: int(x))
@@ -158,18 +166,41 @@ def split_to_models(df):
 '''
 Takes the data file path and parameters for the lacer model and runs the pipeline to get the appropriate dataframes, then runs both models. This is the main function you should run from this file.
 '''
-def run_split_models(df,train_start_date, train_end_date, test_start_date, test_end_date, request_type, CD, predictor_num):
+'''
+def create_split_models(df,train_start_date, train_end_date, test_start_date, test_end_date, request_type, CD, predictor_num):
     df_sgcrf, df_other = split_to_models(df)
     print('running SGCRF')
+    #10 weeks
     modelCD, modelRT = lacer(df_sgcrf.copy(),df_sgcrf.copy(), train_start_date, train_end_date, test_start_date, test_end_date, request_type, CD, predictor_num)
     print('running (other model)')
-    a,b = minority_class_model(df_other)
+    #a,b = minority_class_model(df_other)
     
     # send to pickle so that flask can access it
     print('dumping to pickle')
     pickle.dump(modelCD, open('modelCD.pkl','wb'))
     pickle.dump(modelRT, open('modelRT.pkl','wb'))
     #return (modelCD, modelRT), (a, b)
+'''
+
+'''
+Code for creating our models and dumping them into pickle files, but with the dates we want to use for our demo
+'''
+def create_models(df,start_date, request_type, CD, predictor_num):
+    # Note that the start date means the date of the request
+    start = datetime.strptime(start_date,'%Y-%m-%d')
+    X, y, dfn = preprocess(df)
+    
+    # Past three years 
+    df_three = dfn[(dfn['Just Date'] <= start-timedelta(weeks=11)) &
+                   (dfn['Just Date'] >= start-timedelta(weeks=11) - timedelta(days=365*3))]
+    df_sgcrf,ignore = split_to_models(df_three,True)
+    
+    # Date of the request 50th from the end
+    train_end_date = df_sgcrf.iloc[-50]['Just Date']
+    modelCD, modelRT = lacer(df_sgcrf.copy(),df_sgcrf.copy(), train_end_date - timedelta(weeks=10), train_end_date, "2017-06-02", "2017-09-02", request_type, CD, predictor_num)
+    pickle.dump(modelCD, open('modelCD.pkl','wb'))
+    pickle.dump(modelRT, open('modelRT.pkl','wb'))
+
 '''
 Beginning code to update the model after requests have been made.
 '''
@@ -184,8 +215,3 @@ def update_model(requests,modelCD,modelRT,modelMin):
     #dump back to pickle - or we can just return the models themselves
     pickle.dump(modelCD, open('modelCD.pkl'), 'wb')
     pickle.dump(modelRT, open('modelRT.pkl'), 'wb')
-    
-    
-    
-    
-    
