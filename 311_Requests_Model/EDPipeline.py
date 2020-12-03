@@ -11,6 +11,7 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from sklearn.naive_bayes import GaussianNB
 from sklearn import tree
 from sklearn.ensemble import RandomForestClassifier
@@ -23,7 +24,8 @@ from sgcrf import SparseGaussianCRF
 import pickle
 
 #Features to use in our model, c = categorical, d = numeric
-c = ['Anonymous','AssignTo', 'RequestType', 'RequestSource','CD','Direction', 'ActionTaken', 'APC' ,'AddressVerified']
+c = ['AssignTo', 'RequestType', 'RequestSource', 'Anonymous', 'CreatedByUserOrganization','CD']
+#c = ['Anonymous','AssignTo', 'RequestType', 'RequestSource','CD','Direction', 'ActionTaken', 'APC' ,'AddressVerified']
 d = ['Latitude', 'Longitude']
     
 #Slightly editied lacer funcions
@@ -38,7 +40,7 @@ def preprocessing(df, start_date, end_date):
 
 def lacer(df, df1, train_start_date, train_end_date, test_start_date, test_end_date, request_type, CD, predictor_num):
     """
-    Trains 3 GCRF models on data from specified CD, Request Type, and Owner which is assigned to fulfill request. 
+    Trains 2 GCRF models on data from specified CD and Request Type which is assigned to fulfill request. 
     Uses specified start and end dates for training and testing to creat train and test sets. 
     """
 
@@ -111,6 +113,10 @@ def preprocess(df, formatted=False,encode=True):
         onehotencoder = OneHotEncoder()
         y = dfn['ElapsedDays'] <= 11
         #Dump encoder class data to pickle
+        #labelencoder_X = LabelEncoder()
+        #for num in range(len(c)): 
+        #    XCAT[:, num] = labelencoder_X.fit_transform(XCAT[:, num])
+        print(XCAT.shape)
         XCAT = onehotencoder.fit_transform(XCAT).toarray()
         X = np.concatenate((XCAT, XNUM), axis=1)
         pickle.dump(onehotencoder, open("encoder.pickl", "wb"))
@@ -151,7 +157,7 @@ def minority_class_model(df):
 '''
 Takes a file path to the data, runs the appropriate preprocessing steps, and uses the model to classify everything into the majority and minority class. Returns a dataframe with the majority class and a separate one with the minority class.
 '''
-def split_to_models(df,formatted=False):
+def split_to_models(df,formatted=False, encode=True):
     print('Calculating train data and labels')
     X, y, df = preprocess(df,formatted)
     print('Creating 11 day classifier')
@@ -181,25 +187,19 @@ def create_split_models(df,train_start_date, train_end_date, test_start_date, te
     pickle.dump(modelRT, open('modelRT.pkl','wb'))
     #return (modelCD, modelRT), (a, b)
 '''
-
-'''
-Code for creating our models and dumping them into pickle files, but with the dates we want to use for our demo
-'''
+#Demo code
 def create_models(df,start_date, request_type, CD, predictor_num):
-    # Note that the start date means the date of the request
     start = datetime.strptime(start_date,'%Y-%m-%d')
     X, y, dfn = preprocess(df)
-    
-    # Past three years 
+    #past three years
     df_three = dfn[(dfn['Just Date'] <= start-timedelta(weeks=11)) &
-                   (dfn['Just Date'] >= start-timedelta(weeks=11) - timedelta(days=365*3))]
+                   (dfn['Just Date'] >= start-timedelta(weeks=11)+relativedelta(years=-1) )]
     df_sgcrf,ignore = split_to_models(df_three,True)
-    
-    # Date of the request 50th from the end
     train_end_date = df_sgcrf.iloc[-50]['Just Date']
-    modelCD, modelRT = lacer(df_sgcrf.copy(),df_sgcrf.copy(), train_end_date - timedelta(weeks=10), train_end_date, "2017-06-02", "2017-09-02", request_type, CD, predictor_num)
+    modelCD, modelRT = lacer(df_sgcrf.copy(),df_sgcrf.copy(), train_end_date - timedelta(weeks=10), train_end_date, train_end_date - timedelta(weeks=10), train_end_date, request_type, CD, predictor_num)
     pickle.dump(modelCD, open('modelCD.pkl','wb'))
     pickle.dump(modelRT, open('modelRT.pkl','wb'))
+    #return (modelCD, modelRT), (a, b)
 
 '''
 Beginning code to update the model after requests have been made.
