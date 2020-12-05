@@ -11,27 +11,12 @@
   <link href="css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
 </head>
 <body>
-  <nav class="white" role="navigation">
-    <div class="nav-wrapper container">
-  <!--<a id="logo-container" href="#" class="brand-logo">Logo</a>-->
-      <ul class="right hide-on-med-and-down">
-        <li><a href="#">LA Council Districts</a></li>
-        <li><a href="#">COVID</a></li>
-      </ul>
-
-      <ul id="nav-mobile" class="sidenav">
-        <li><a href="#">LA Council Districts</a></li>
-        <li><a href="#">COVID</a></li>
-      </ul>
-      <a href="#" data-target="nav-mobile" class="sidenav-trigger"><i class="material-icons">menu</i></a>
-    </div>
-  </nav>
 
   <div id="index-banner" class="parallax-container">
     <div class="section no-pad-bot">
       <div class="container">
         <br><br>
-        <h1 class="header center brown-text">Los Angeles 311 Service Requests Classification</h1>
+        <h1 class="header center brown">Los Angeles 311 Service Requests Classification</h1>
         <div class="row center">
           <!--<h5 class="header col s12 light">A modern responsive front-end framework based on Material Design</h5>-->
         </div>
@@ -50,24 +35,50 @@
 
 
   <div class="row">
-    <form action='/app.py' method="post" class="col s12">
+    <form action='/predict' method="post" class="col s12">
       <div class="row">
-
+        
         <div class="input-field col s4">
-            <!-- Dropdown Structure -->
-            <ul id="dropdown1" class="dropdown-content">
-              <li><a href="#!">one</a></li>
-              <li><a href="#!">two</a></li>
-              <li class="divider"></li>
-              <li><a href="#!">three</a></li>
+          <label for="last_name"><b>Categorical Variables</b></label>
+            <br></br>
+            <ul class="collapsible">
+              <li>
+                <div class="collapsible-header">AssignTo</div>
+                <div class="collapsible-body">
+                  <input id="_name" placeholder="AssignTo"  type="text" class="validate">
+                </div>
+              </li>
+              <li>
+                <div class="collapsible-header">RequestType</div>
+                <div class="collapsible-body">
+                  <input id="_name" placeholder="RequestType"  type="text" class="validate">
+                </div>
+              </li>
+              <li>
+                <div class="collapsible-header">RequestSource</div>
+                <div class="collapsible-body">
+                  <input id="_name" placeholder="RequestSource"  type="text" class="validate">
+                </div>
+              </li>
+              <li>
+                <div class="collapsible-header">Month</div>
+                <div class="collapsible-body">
+                  <input id="_name" placeholder="Month"  type="text" class="validate">
+                </div>
+              </li>
+              <li>
+                <div class="collapsible-header">Anonymous</div>
+                <div class="collapsible-body">
+                  <input id="_name" placeholder="Anonymous"  type="text" class="validate">
+                </div>
+              </li>
+              <li>
+                <div class="collapsible-header">CreatedByUserOrganization</div>
+                <div class="collapsible-body">
+                  <input id="_name" placeholder="CreatedByUserOrganization"  type="text" class="validate">
+                </div>
+              </li>
             </ul>
-            <nav>
-              <div class="nav-wrapper">
-                  <!-- Dropdown Trigger -->
-                  <li><a class="dropdown-trigger" href="#!" data-target="dropdown1">Dropdown<i class="material-icons right">arrow_drop_down</i></a></li>
-                </ul>
-              </div>
-            </nav>
             
         </div>
 
@@ -92,6 +103,9 @@
     </form>
       </div>
 
+      <br>
+        {{pred}}<br>
+
     </div>
   </div>
 
@@ -100,7 +114,7 @@
     <div class="section no-pad-bot">
       <div class="container">
         <div class="row center">
-          <h5 class="header col s12 light brown-text">Run the model to estimate the completion time of an LA 311 service request.</h5>
+          <h5 class="header col s12 light brown">Run the model to estimate the completion time of an LA 311 service request.</h5>
         </div>
       </div>
     </div>
@@ -135,17 +149,23 @@
 
   <footer class="page-footer brown">
     <div class="container">
-      
-        <div class="col l3 s12">
-          <h5 class="white-text">Connect With Us</h5>
-          <ul>
-            <li><a class="white-text" href="#!">Link 1</a></li>
-            <li><a class="white-text" href="#!">Link 2</a></li>
-            <li><a class="white-text" href="#!">Link 3</a></li>
-            <li><a class="white-text" href="#!">Link 4</a></li>
-          </ul>
+        <div class = "row">
+          <div class="col l3 s12">
+            <h5 class="white-text">Connect With Us</h5>
+            <ul>
+              <li><a class="white-text" href="#!">Link 1</a></li>
+              <li><a class="white-text" href="#!">Link 2</a></li>
+              <li><a class="white-text" href="#!">Link 3</a></li>
+              <li><a class="white-text" href="#!">Link 4</a></li>
+            </ul>
+          </div>
+          <div class="col l6 s12">
+            <h5 class="white-text">GitHub</h5>
+            <ul>
+              <li><a class="white-text" href="https://github.com/p-ai-org/p-requests" target="_blank">https://github.com/p-ai-org/p-requests</a></li>
+            </ul>
+          </div>
         </div>
-      </div>
     </div>
     <div class="footer-copyright">
       <div class="container">
