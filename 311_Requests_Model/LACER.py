@@ -84,6 +84,7 @@ def CleanedFrame(df):
     df['ElapsedHours'] = df.apply(lambda x: elapsedHours(x['CreatedDate'],x['ClosedDate']),axis=1)
     df['ClosedDate'] = df['ClosedDate'].apply(lambda x: datetime.strptime(x, '%m/%d/%Y %I:%M:%S %p'))
     df['CreatedDate'] = df['CreatedDate'].apply(lambda x: datetime.strptime(x, '%m/%d/%Y %I:%M:%S %p'))
+    
     df = df.sort_values(by="CreatedDate")
 
     return df

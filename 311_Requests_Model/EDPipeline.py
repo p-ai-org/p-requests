@@ -24,8 +24,7 @@ from sgcrf import SparseGaussianCRF
 import pickle
 
 #Features to use in our model, c = categorical, d = numeric
-c = ['AssignTo', 'RequestType', 'RequestSource', 'Anonymous', 'CreatedByUserOrganization','CD']
-#c = ['Anonymous','AssignTo', 'RequestType', 'RequestSource','CD','Direction', 'ActionTaken', 'APC' ,'AddressVerified']
+c = ['AssignTo', 'RequestType', 'RequestSource', 'Month', 'Anonymous', 'CreatedByUserOrganization','CD']
 d = ['Latitude', 'Longitude']
     
 #Slightly editied lacer funcions
@@ -193,7 +192,7 @@ def create_models(df,start_date, request_type, CD, predictor_num):
     X, y, dfn = preprocess(df)
     #past three years
     df_three = dfn[(dfn['Just Date'] <= start-timedelta(weeks=11)) &
-                   (dfn['Just Date'] >= start-timedelta(weeks=11)+relativedelta(years=-1) )]
+                   (dfn['Just Date'] >= start-timedelta(weeks=11)+relativedelta(years=-3) )]
     df_sgcrf,ignore = split_to_models(df_three,True)
     train_end_date = df_sgcrf.iloc[-50]['Just Date']
     modelCD, modelRT = lacer(df_sgcrf.copy(),df_sgcrf.copy(), train_end_date - timedelta(weeks=10), train_end_date, train_end_date - timedelta(weeks=10), train_end_date, request_type, CD, predictor_num)
