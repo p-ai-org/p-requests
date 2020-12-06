@@ -14,12 +14,12 @@ app = Flask(__name__)
 #modelCD_path = os.path.join(Path(os.getcwd()).parents[1], 'p-requests','311_Requests_Model', 'modelCD.pkl')
 #modelRT_path = os.path.join(Path(os.getcwd()).parents[1], 'p-requests','311_Requests_Model', 'modelRT.pkl')
 #modelRF_path = os.path.join(Path(os.getcwd()).parents[1], 'p-requests','311_Requests_Model', 'randomForest.pkl')
-#encoder_path = os.path.join(Path(os.getcwd()).parents[1], '311_Requests_Model', 'encoder.pkl')
+
 
 modelCD = pickle.load(open('modelCD.pkl', 'rb'))
 modelRT = pickle.load(open('modelRT.pkl', 'rb'))
 modelRF = pickle.load(open('randomForest.pkl', 'rb'))
-#one_hot = pickle.load(open(encoder_path, 'rb'))
+
 
 @app.route('/')
 def hello_world():
@@ -41,8 +41,9 @@ def predict():
     if(int(modelRF.predict(X)) == 0):
         return render_template('index.html', pred='More than 11 days')
     # averaged prediction --- pulled out from lacer script
-    prediction = modelCD.predict(X) + modelRT.predict(X) / 2
-    return render_template('index.html', pred=str(prediction))
+    previous_fifty = np.load(open('previousfifty.npy','rb'))
+    prediction = modelCD.predict(previous_fifty) + modelRT.predict(previous_fifty) / 2
+    return render_template('index.html', pred=str(prediction[0]/24) + ' days')
 
 if __name__ == '__main__':
     app.run(debug=True)
