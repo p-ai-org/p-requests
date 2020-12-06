@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>P-ai 311 Team</title>
+
+<!-- CSS  -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link href="css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+<link href="css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+</head>
+<body>
+
+<div id="index-banner" class="parallax-container">
+  <div class="section no-pad-bot">
+    <div class="container">
+      <br><br>
+      <h1 class="header center brown">Los Angeles 311 Service Requests Classification</h1>
+      <div class="row center">
+        <!--<h5 class="header col s12 light">A modern responsive front-end framework based on Material Design</h5>-->
+      </div>
+      <div class="row center">
+        <a href="https://311-data.org/" target="_blank" id="download-button" class="btn-large waves-effect waves-light brown">Learn More</a>
+      </div>
+      <br><br>
+
+    </div>
+  </div>
+  <div class="parallax"><img src="background1.jpg" alt="Unsplashed background img 1"></div>
+</div>
+
+
+<br></br>
+
+
+<div class="row">
+  <form action='/predict' method="POST" class="col s12">
+    <div class="row">
+
+      <div class="input-field col s4">
+        <label for="_name"><b>AssignTo</b></label>
+          <br>
+        <input id="_name" name="AssignTo" placeholder="AssignTo"  type="text" class="validate">
+      </div>
+
+      <div class="input-field col s4">
+          <label for="_name"><b>RequestType</b></label>
+          <br>
+        <input id="_name" name="RequestType" placeholder="RequestType" type="text" class="validate">
+      </div>
+
+      <div class="input-field col s4">
+        <label for="_name"><b>RequestSource</b></label>
+        <br>
+      <input id="_name" name="RequestSource" placeholder="RequestSource" type="text" class="validate">
+    </div>
+
+      <div class="input-field col s4">
+        <label for="_name"><b>Month</b></label>
+          <br>
+        <input id="_name" name="Month" placeholder="Month"  type="text" class="validate">
+      </div>
+
+    </div>
+      <div class="input-field col s4">
+        <label for="_name"><b>Anonymous</b></label>
+          <br>
+        <input id="_name" name="Anonymous" placeholder="Anonymous"  type="text" class="validate">
+      </div>
+
+      <div class="input-field col s4">
+        <label for="_name"><b>CreatedByUserOrganization</b></label>
+        <br>
+      <input id="_name" name="CreatedByUserOrganization" placeholder="CreatedByUserOrganization" type="text" class="validate">
+    </div>
+
+
+      <div class="input-field col s4">
+        <label for="number"><b>Latitude</b></label>
+          <br>
+        <input id="number" name="Latitude" placeholder="Latitude Coordinate"  type="text" class="validate">
+      </div>
+
+      <div class="input-field col s4">
+          <label for="number"><b>Longitude</b></label>
+          <br>
+        <input id="number" name="Longitude" placeholder="Longitude Coordinate" type="text" class="validate">
+      </div>
+
+    </div>
+
+    <div class="row center">
+
+        <button type="submit" class="btn-large waves-effect waves-light brown">Predict Elapsed Completion Time</button>
+    </div>
+    </form>
+    </div>
+
+    <br>
+        {{pred}}<br>
+
+  </div>
+</div>
+
+
+<div class="parallax-container valign-wrapper">
+  <div class="section no-pad-bot">
+    <div class="container">
+      <div class="row center">
+        <h5 class="header col s12 light brown">Run the model to estimate the completion time of an LA 311 service request.</h5>
+      </div>
+    </div>
+  </div>
+  <div class="parallax"><img src="background1.jpg" alt="Unsplashed background img 2"></div>
+</div>
+
+<div class="container">
+  <div class="section">
+
+    <div class="row">
+      <div class="col s12 center">
+        <h3><i class="mdi-content-send brown-text"></i></h3>
+        <h4>About Us</h4>
+        <p class="left-align light"></p> <!--text within the paragraph tabs-->
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<div class="parallax-container valign-wrapper">
+  <div class="section no-pad-bot">
+    <div class="container">
+      <div class="row center">
+        <h5 class="header col s12 light">Hello</h5>
+      </div>
+    </div>
+  </div>
+  <div class="parallax"><img src="background1.jpg" alt="Unsplashed background img 3"></div>
+</div>
+
+<footer class="page-footer brown">
+  <div class="container">
+      <div class = "row">
+        <div class="col l4 s12">
+          <h5 class="white-text">Connect With Us</h5>
+          <ul>
+            <li><a class="white-text" href="#!">Link 1</a></li>
+            <li><a class="white-text" href="#!">Link 2</a></li>
+            <li><a class="white-text" href="#!">Link 3</a></li>
+            <li><a class="white-text" href="#!">Link 4</a></li>
+          </ul>
+        </div>
+        <div class="col l6 s12">
+          <h5 class="white-text">GitHub</h5>
+          <ul>
+            <li><a class="white-text" href="https://github.com/p-ai-org/p-requests" target="_blank">https://github.com/p-ai-org/p-requests</a></li>
+          </ul>
+        </div>
+      </div>
+  </div>
+  <div class="footer-copyright">
+    <div class="container">
+    Made by <a class="brown-text text-lighten-3" href="http://materializecss.com">Materialize</a>
+    </div>
+  </div>
+</footer>
+
+
+<!--  Scripts-->
+<script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+<script src="js/materialize.js"></script>
+<script src="js/init.js"></script>
+
+</body>
+</html>

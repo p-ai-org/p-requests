@@ -29,13 +29,15 @@ def hello_world():
 @app.route('/predict', methods=['POST', 'GET'])
 def predict():
     features = [x for x in request.form.values()]
+    features[-2] = float(features[-2])
+    features[-1] = float(features[-1])
     print(features)
     column_names = ['AssignTo', 'RequestType', 'RequestSource', 'Month', 'Anonymous', 'CreatedByUserOrganization','Latitude','Longitude']
     dictionary = dict(zip(column_names,features))
     df_request = pd.DataFrame(columns= column_names)
     for key in dictionary: 
             df_request.at[0, key] = dictionary[key] 
-    X,ignore, dfn = edp.preprocess_request(df_request)
+    X, dfn = edp.preprocess_request(df_request)
     if(int(modelRF.predict(X)) == 0):
         return render_template('index.html', pred='More than 11 days')
     # averaged prediction --- pulled out from lacer script
