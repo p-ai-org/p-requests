@@ -94,7 +94,12 @@ def gelev(val):
         return 1
 
 '''
-Preprocessing function. Takes in the file path to the data and loads it in a DataFrame, then calcuates the elapsed days per request and marks them as more than or less than eleven days. Then it encodes the appropriate values and returns the train data, labels, and the formatted dataframe.
+Preprocessing function. Takes in the file path to the data and loads it in a DataFrame, 
+then calcuates the elapsed days per request and marks them as more than or less than eleven days. 
+Then it encodes the appropriate values and returns the train data, labels, and the formatted dataframe.
+If formatted is False, it will convert the Just Date column into datetime objects
+If encode is false, it requires that the onehotencoder has already been dumped into a joblib file,
+so make sure that this has been run once on all the data with encode equal to true.
 '''
 def preprocess(df, formatted=False,encode=False):
     if not formatted:
@@ -124,6 +129,9 @@ def preprocess(df, formatted=False,encode=False):
         X = np.concatenate((XCAT, XNUM), axis=1)
     return X,y, dfn
 
+'''
+Preprocess a request given as a dataframe
+'''
 def preprocess_request(df):
     dfn = df.filter(items = c + d)
     dfn = dfn.dropna()
@@ -159,13 +167,6 @@ def estimation_model(estimators, depth,X,y):
     return rf
 
 '''
-Will be replaced with model for requests over 11 days
-'''
-def minority_class_model(df):
-    # this needs to return a model for the deployment to work -- Andy
-    return 0,0
-
-'''
 Takes a file path to the data, runs the appropriate preprocessing steps, and uses the model to classify everything into the majority and minority class. Returns a dataframe with the majority class and a separate one with the minority class.
 '''
 def split_to_models(df,formatted=False, encode=True):
@@ -180,37 +181,37 @@ def split_to_models(df,formatted=False, encode=True):
     df_sgcrf = df[df['LessEqualEleven'] == 1.0]
     df_other = df[df['LessEqualEleven'] == 0.0]
     return df_sgcrf, df_other
+
 '''
-Takes the data file path and parameters for the lacer model and runs the pipeline to get the appropriate dataframes, then runs both models. This is the main function you should run from this file.
+Given a start date, it will train the classifier on data 3 years before 10 weeks before the start date, then 
+train the sgcrf model with 10 weeks of data from before the start date, then predict using the fifty most recent requests
+from the start date.
 '''
-'''
-def create_split_models(df,train_start_date, train_end_date, test_start_date, test_end_date, request_type, CD, predictor_num):
-    df_sgcrf, df_other = split_to_models(df)
-    print('running SGCRF')
-    #10 weeks
-    modelCD, modelRT = lacer(df_sgcrf.copy(),df_sgcrf.copy(), train_start_date, train_end_date, test_start_date, test_end_date, request_type, CD, predictor_num)
-    print('running (other model)')
-    #a,b = minority_class_model(df_other)
-    
-    # send to pickle so that flask can access it
-    print('dumping to pickle')
-    pickle.dump(modelCD, open('modelCD.pkl','wb'))
-    pickle.dump(modelRT, open('modelRT.pkl','wb'))
-    #return (modelCD, modelRT), (a, b)
-'''
+#Demo code
 #Demo code
 def create_models(df,start_date, request_type, CD, predictor_num):
     start = datetime.strptime(start_date,'%Y-%m-%d')
-    X, y, dfn = preprocess(df)
-    #past three years
+    #Preprocess data
+    X, y, dfn = preprocess(df,encode=True)
+    #Sort into past three years
     df_three = dfn[(dfn['Just Date'] <= start-timedelta(weeks=11)) &
                    (dfn['Just Date'] >= start-timedelta(weeks=11)+relativedelta(years=-3) )]
+    #Run dataframe through the classifier and get all requests less than or equal to 11 days
     df_sgcrf,ignore = split_to_models(df_three,True)
+    #Get last 50 requests
+    dff = df_sgcrf.copy().tail(50).reset_index(drop=True)
+    dff['ElapsedHours'] = dff.apply(lambda x: lc.elapsedHours(x['CreatedDate'],x['ClosedDate']),axis=1)
+    #Last 50 elapsedhours values
+    fifty = dff['ElapsedHours'].values
+    #Dump to npy file to be used by website backend
+    np.save(open('previousfifty.npy','wb'),fifty)
+    #Date of the 50th request from the end
     train_end_date = df_sgcrf.iloc[-50]['Just Date']
+    #Send to LACER
     modelCD, modelRT = lacer(df_sgcrf.copy(),df_sgcrf.copy(), train_end_date - timedelta(weeks=10), train_end_date, train_end_date - timedelta(weeks=10), train_end_date, request_type, CD, predictor_num)
+    #Dump to pickle file
     pickle.dump(modelCD, open('modelCD.pkl','wb'))
     pickle.dump(modelRT, open('modelRT.pkl','wb'))
-    #return (modelCD, modelRT), (a, b)
 
 '''
 Beginning code to update the model after requests have been made.
