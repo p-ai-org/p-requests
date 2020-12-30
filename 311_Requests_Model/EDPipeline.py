@@ -22,70 +22,15 @@ from sklearn.metrics import mean_absolute_error
 from sgcrf import SparseGaussianCRF
 import pickle
 from joblib import dump, load
+import lagcrf
+import psycopg2
 
 #Features to use in our model, c = categorical, d = numeric
 c = ['AssignTo', 'RequestType', 'RequestSource', 'Month', 'Anonymous', 'CreatedByUserOrganization']
 d = ['Latitude', 'Longitude']
     
-#Slightly editied lacer funcions
-def preprocessing(df, start_date, end_date):
-    """
-    Filters dataframe by specified start and end_dates and runs CleanedFrame on it.  
-    """ 
-    #Filter dataframe by dates 
-    df = df[(df['Just Date'] >= start_date) & (df['Just Date'] <= end_date)]
-    df = lc.CleanedFrame(df)
-    return df
-
-def lacer(df, df1, train_start_date, train_end_date, test_start_date, test_end_date, request_type, CD, predictor_num):
-    """
-    Trains 2 GCRF models on data from specified CD and Request Type which is assigned to fulfill request. 
-    Uses specified start and end dates for training and testing to creat train and test sets. 
-    """
-
-    #Create Training and Testing Sets
-    dftrain = preprocessing(df, train_start_date, train_end_date)
-    dftrain = dftrain.reset_index(drop = True)
-    dftest = preprocessing(df1, test_start_date, test_end_date)
-    dftest = dftest.reset_index(drop = True)
-
-    #Reserve test set for training on all 3 models.
-    
-    y_train, y_test = lc.CreateTestSet(dftest, predictor_num)
-    y_test = y_test.reshape((-1, 1))
-   
-
-    ## 2 Models
-    #Model1: CD
-    modelCD = SparseGaussianCRF(lamL=0.1, lamT=0.1, n_iter=10000)
-    dftrainCD = dftrain[dftrain['CD'] == CD].reset_index(drop = True)
-
-    X_trainCD, X_testCD = lc.CreateTrainSet(dftrainCD, predictor_num)
-    X_testCD = X_testCD.reshape((-1, 1))
-    modelCD.fit(X_trainCD, X_testCD)
-
-    y_predCD = modelCD.predict(y_train)
-
-    #Model2: Request_type
-    modelRT = SparseGaussianCRF(lamL=0.1, lamT=0.1, n_iter=10000)
-    dftrainRT = dftrain[dftrain['RequestType'] == request_type].reset_index(drop = True)
-
-    X_trainRT, X_testRT = lc.CreateTrainSet(dftrainRT, predictor_num)
-    X_testRT = X_testRT.reshape((-1, 1))
-
-    modelRT.fit(X_trainRT, X_testRT)
-
-    y_predRT = modelRT.predict(y_train)
-
-
-    #Average out all predictions
-    y_predFinal = (y_predCD + y_predRT )/2
-
-    # Return models
-    return modelCD, modelRT
-
 """
-Retu whether or not a number is greater than 11. 
+Return whether or not a number is greater than 11. 
 """
 def gelev(val): 
     if val <= 11: 
@@ -118,11 +63,9 @@ def preprocess(df, formatted=False,encode=False):
         onehotencoder = OneHotEncoder()
         print(XCAT.shape)
         onehotencoder.fit_transform(XCAT)
-        #XCAT = onehotencoder.fit_transform(XCAT).toarray()
         X = np.concatenate((XCAT, XNUM), axis=1)
         print()
         dump(onehotencoder,'onehot.joblib')
-        #pickle.dump(onehotencoder, open("encoder.pkl", "wb"))
     else:
         onehotencoder = load('onehot.joblib')
         XCAT = onehotencoder.transform(XCAT).toarray()
@@ -187,43 +130,26 @@ Given a start date, it will train the classifier on data 3 years before 10 weeks
 train the sgcrf model with 10 weeks of data from before the start date, then predict using the fifty most recent requests
 from the start date.
 '''
-#Demo code
-#Demo code
-def create_models(df,start_date, request_type, CD, predictor_num):
+
+def create_models(start_date, request_type, CD):
+    #Current date
     start = datetime.strptime(start_date,'%Y-%m-%d')
+    con = psycopg2.connect(database="311_db", user="311_user", password="311_pass", host="localhost", port="5432")
+    # The * will be replaced by the proper columns, then the preprocess function will be edited 
+    df = pd.read_sql("SELECT * FROM requests WHERE createddate >= CURRENT_DATE - INTERVAL '3 years 11 weeks'",con)
     #Preprocess data
     X, y, dfn = preprocess(df,encode=True)
-    #Sort into past three years
+    #Sort into past three years from 11 weeks before
     df_three = dfn[(dfn['Just Date'] <= start-timedelta(weeks=11)) &
                    (dfn['Just Date'] >= start-timedelta(weeks=11)+relativedelta(years=-3) )]
     #Run dataframe through the classifier and get all requests less than or equal to 11 days
     df_sgcrf,ignore = split_to_models(df_three,True)
-    #Get last 50 requests
-    dff = df_sgcrf.copy().tail(50).reset_index(drop=True)
-    dff['ElapsedHours'] = dff.apply(lambda x: lc.elapsedHours(x['CreatedDate'],x['ClosedDate']),axis=1)
-    #Last 50 elapsedhours values
-    fifty = dff['ElapsedHours'].values
-    #Dump to npy file to be used by website backend
-    np.save(open('previousfifty.npy','wb'),fifty)
     #Date of the 50th request from the end
     train_end_date = df_sgcrf.iloc[-50]['Just Date']
-    #Send to LACER
-    modelCD, modelRT = lacer(df_sgcrf.copy(),df_sgcrf.copy(), train_end_date - timedelta(weeks=10), train_end_date, train_end_date - timedelta(weeks=10), train_end_date, request_type, CD, predictor_num)
+    #Send to lagcrf
+    modelCD, modelRT = lagcrf.crf_models(df_sgcrf.copy(),df_sgcrf.copy(), train_end_date - timedelta(weeks=10), 
+        train_end_date, train_end_date - timedelta(weeks=10), train_end_date, request_type, CD, 50)
     #Dump to pickle file
     pickle.dump(modelCD, open('modelCD.pkl','wb'))
     pickle.dump(modelRT, open('modelRT.pkl','wb'))
 
-'''
-Beginning code to update the model after requests have been made.
-'''
-def update_model(requests,modelCD,modelRT,modelMin):
-    df_request = pd.DataFrame(data=requests,columns=c+d)
-    X, y, df = preprocess(df_request)
-    df_sgcrf = df[df['ElapsedDays'] <= 11.0]
-    df_other = df[df['ElapsedDays'] > 11.0]
-    modelCD.fit(np.asarray(df_sgcrf['CD']),np.asarray(df_sgcrf['ElapsedDays']))
-    modelRT.fit(np.asarray(df_sgcrf['RequestType']),np.asarray(df_sgcrf['ElapsedDays']))
-    #modelMin.fit will go here
-    #dump back to pickle - or we can just return the models themselves
-    pickle.dump(modelCD, open('modelCD.pkl'), 'wb')
-    pickle.dump(modelRT, open('modelRT.pkl'), 'wb')
