@@ -25,6 +25,19 @@ modelRF = pickle.load(open('randomForest.pkl', 'rb'))
 #Connect to db
 con = psycopg2.connect(database="311_db", user="311_user", password="311_pass", host="localhost", port="5432")
 
+#Takes in two datetimes intstead of strings
+def elapsed_hours(createdDate, closedDate): 
+    diff = closedDate - createdDate
+    
+    days, seconds = diff.days, diff.seconds
+    hours = days * 24 + seconds // 3600
+    minutes = (seconds % 3600) // 60
+    seconds = seconds % 60
+    minutes = minutes + seconds/60
+    hours = hours + minutes/60
+
+    return hours
+
 @app.route('/')
 def hello_world():
     return render_template("index.html")
@@ -49,7 +62,7 @@ def predict():
 
     # Pull last 50 requests in db
     df_fifty = pd.read_sql(f"SELECT * FROM requests WHERE cd = {council} AND requesttype = '{dictionary['RequestType']}' LIMIT 50", con)
-    df_fifty['ElapsedHours'] = df_fifty.apply(lambda x: lg.elapsedHours(x['createddate'],x['closeddate']),axis=1)
+    df_fifty['ElapsedHours'] = df_fifty.apply(lambda x: elapsed_hours(x['createddate'],x['closeddate']),axis=1)
     previous_fifty = df_fifty['ElapsedHours'].values
 
     prediction = modelCD.predict(previous_fifty) + modelRT.predict(previous_fifty) / 2
