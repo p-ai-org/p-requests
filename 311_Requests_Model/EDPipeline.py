@@ -131,19 +131,19 @@ train the sgcrf model with 10 weeks of data from before the start date, then pre
 from the start date.
 '''
 
-def create_models(start_date, request_type, CD):
+def create_models(df_three, request_type, CD):
     #Current date
-    start = datetime.strptime(start_date,'%Y-%m-%d')
-    con = psycopg2.connect(database="311_db", user="311_user", password="311_pass", host="localhost", port="5432")
+    #start = datetime.strptime(start_date,'%Y-%m-%d')
+    #con = psycopg2.connect(database="311_db", user="311_user", password="311_pass", host="localhost", port="5432")
     # The * will be replaced by the proper columns, then the preprocess function will be edited 
-    df = pd.read_sql("SELECT * FROM requests WHERE createddate >= CURRENT_DATE - INTERVAL '3 years 11 weeks'",con)
+    #df = pd.read_sql("SELECT * FROM requests WHERE createddate >= CURRENT_DATE - INTERVAL '3 years 11 weeks'",con)
     #Preprocess data
-    X, y, dfn = preprocess(df,encode=True)
+    #X, y, dfn = preprocess(df_three,encode=True)
     #Sort into past three years from 11 weeks before
-    df_three = dfn[(dfn['Just Date'] <= start-timedelta(weeks=11)) &
-                   (dfn['Just Date'] >= start-timedelta(weeks=11)+relativedelta(years=-3) )]
+    #df_three = dfn[(dfn['Just Date'] <= start-timedelta(weeks=11)) &
+    #               (dfn['Just Date'] >= start-timedelta(weeks=11)+relativedelta(years=-3) )]
     #Run dataframe through the classifier and get all requests less than or equal to 11 days
-    df_sgcrf,ignore = split_to_models(df_three,True)
+    df_sgcrf,ignore = split_to_models(df_three,True, encode=True)
     #Date of the 50th request from the end
     train_end_date = df_sgcrf.iloc[-50]['Just Date']
     #Send to lagcrf
